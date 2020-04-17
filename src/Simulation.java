@@ -50,6 +50,7 @@ public class Simulation {
         // tiny unrealistic cluster
         if(true)
         {
+            drawInterval = 86400/24/10;
             amount = 100;
             size = 0.5*AU;
             Body[] b = Body.generateBodies(new Vector3(0,0,0),size/2,amount); bodies = b;
