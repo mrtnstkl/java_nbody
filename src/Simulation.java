@@ -43,6 +43,8 @@ public class Simulation {
         {
             amount = 10000;
             size = 5*LY;
+            approximation = 1;
+            drawInterval = 86400/24/30;
             Body[] b = Body.generateBodies(new Vector3(0,0,0),size,amount); bodies = b;
             //b[0] = new Body(5e33,new Vector3(0,0,0)); // central black hole
             tree = new TreeNode(new Vector3(0,0,0), size , bodies);
@@ -64,6 +66,9 @@ public class Simulation {
         StdDraw.enableDoubleBuffering();
         StdDraw.clear(StdDraw.BLACK);
 
+
+        // benchmark timer
+        //long startTime = System.currentTimeMillis();
 
         // -------- simulation loop --------- //
         double seconds = 0;
@@ -110,6 +115,10 @@ public class Simulation {
 
             seconds++;
         }
+
+        // benchmark results
+        //long estimatedTime = System.currentTimeMillis() - startTime;
+        //System.out.println("total time: " + estimatedTime + "ms | cycle average: " + estimatedTime/1000 + "ms" );
     }
 
 

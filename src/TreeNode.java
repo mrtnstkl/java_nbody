@@ -48,28 +48,32 @@ public class TreeNode {
         centerOfMass = (centerOfMass.times(totalMass) .plus(body.getPosition().times(body.getMass()))) .times(1.0/(totalMass+body.getMass()));
         totalMass += body.getMass();
 
-        if(status==NodeStatus.EMPTY) { // node is empty
-            status = NodeStatus.BODY; // change status
-            this.body = body; // set body
+        if(status==NodeStatus.PARENT) { // node is a parent and has child nodes
+            // add the new body to the correct child node
+            int childQuadrant = determineQuadrant(this.position,this.size,body.getPosition());
+            initChild(childQuadrant);
+            children[childQuadrant].add(body);
         }
         else if(status==NodeStatus.BODY){ // node has a body
 
             status = NodeStatus.PARENT; // change node status
 
             // move the old body to the correct child node
-            initChild(determineQuadrant(this.position,this.size,this.body.getPosition()));
-            children[determineQuadrant(this.position,this.size,this.body.getPosition())].add(this.body);
+            int oldChildQuadrant = determineQuadrant(this.position,this.size,this.body.getPosition());
+            initChild(oldChildQuadrant);
+            children[oldChildQuadrant].add(this.body);
             this.body = null;
 
             // add the new body to the correct child node
-            initChild(determineQuadrant(this.position,this.size,body.getPosition()));
-            children[determineQuadrant(this.position,this.size,body.getPosition())].add(body);
+            int newChildQuadrant = determineQuadrant(this.position,this.size,body.getPosition());
+            initChild(newChildQuadrant);
+            children[newChildQuadrant].add(body);
         }
-        else { // node is a parent and has child nodes
-            // add the new body to the correct child node
-            initChild(determineQuadrant(this.position,this.size,body.getPosition()));
-            children[determineQuadrant(this.position,this.size,body.getPosition())].add(body);
+        else{ // node is empty
+            status = NodeStatus.BODY; // change status
+            this.body = body; // set body
         }
+
     }
 
     // --- calculateForce --- //
@@ -77,21 +81,14 @@ public class TreeNode {
     public Vector3 calculateForce(Body b, double approximation){
         Vector3 forceVector = new Vector3(0,0,0);
 
-        if(b.getPosition().distanceTo(centerOfMass) < 1.0 || status == NodeStatus.EMPTY) // return 0-vector if body is compared to itself or the node empty
+        // return 0-vector if body is compared to itself or the node empty
+        if(status == NodeStatus.EMPTY || b.getPosition().distanceTo(centerOfMass) < 1000.0 )
         {
             // DEBUG: System.out.println("calculateForce(): guard triggered");
             return forceVector;
         }
 
-        // DEBUG
-        /*
-        if(b.getPosition().distanceTo(position)/size > approximation)
-            System.out.println("calculateForce(): returning approximation");
-        else if (status == NodeStatus.BODY)
-            System.out.println("calculateForce(): returning body");
-        */
-        // /DEBUG
-
+        // use center of mass and totalmass of this node if it is a body node or far enough
         if( b.getPosition().distanceTo(position)/size > approximation || status == NodeStatus.BODY ){ // r/d > T
             // far enough:
             forceVector = centerOfMass.minus(b.getPosition()); // vector from the body to the group
@@ -100,7 +97,8 @@ public class TreeNode {
             // DEBUG: System.out.println( "returning  " + b.id +" : " + totalMass + " " + b.getMass() + " " + b.getPosition().distanceTo(centerOfMass) + " | :" );
             return forceVector.times( Simulation.G * (totalMass*b.getMass()) / Math.pow( b.getPosition().distanceTo(centerOfMass), 2) );
         }
-        else if (status == NodeStatus.PARENT){
+        // else: node is a parent
+        else{
             // add force vectors of all children if node has children
             // DEBUG: System.out.println("calculateForce(): stepping down");
             for (int i = 0; i < 8 ; i++) {
@@ -111,6 +109,7 @@ public class TreeNode {
             }
             // DEBUG: System.out.println("calculateForce(): stepping up");
         }
+
         return forceVector;
     }
 
