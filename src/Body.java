@@ -8,7 +8,7 @@ public class Body {
     // --- static star generation variables --- //
     private static double minMass = 1.0e30;
     private static double maxMass = 2.0e30;
-    private static double clusterDistribution = 0.7;
+    private static double clusterDistribution = 0.6;
     private static boolean enable3D = true;
 
     // --- variables --- //
@@ -60,7 +60,7 @@ public class Body {
     // --- draw --- //
     // draw the body as a filled circle
     public void draw(){
-        position.drawAsDot(695508000e0, color);
+        position.drawAsDot(Simulation.getRenderScale()*0.002, color);
     }
 
     // --- gravForce --- //
@@ -93,6 +93,16 @@ public class Body {
         b.position = b.position.plus(clusterCenter); // get absolute position in space by adding clusterCenter
 
         // TODO: generate movement vectors
+        // generate vector
+        // v1: vector from body to center
+        // v2: completely random vector
+        // b.velocity: cross product of v1 and v2. this gives a vector that is perpendicular to v1
+        Vector3 v1 = clusterCenter.minus(b.position);
+        Vector3 v2 = new Vector3( Math.random()-0.5, Math.random()-0.5, Math.random()-0.5 );
+        b.velocity = new Vector3(v1.y*v2.z - v1.z*v2.y , v1.z*v2.x - v1.x*v2.z, v1.x*v2.y - v1.y*v2.x);
+        b.velocity.normalize();
+        // calculate orbital velocity and multiply the velocity vector with it
+        b.velocity = b.velocity.times( Math.sqrt( Simulation.G * 1.5e30*100*0.3 / b.position.distanceTo(clusterCenter) ) );
 
         return b;
     }

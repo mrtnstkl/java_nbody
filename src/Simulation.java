@@ -5,21 +5,26 @@ import java.awt.*;
 public class Simulation {
 
     // --- universal constants --- //
-    public static final double LY = 9.46073e15;
-    public static final double AU = 150e9;
-    public static final double G = 6.6743e-11;
+    public static final double LY = 9.46073e15; // 1 light year
+    public static final double AU = 150e9; // 1 astronomical unit
+    public static final double G = 6.6743e-11; // gravitational constant
+    public static final double M = 1.989e30; // 1 solar mass
 
+    private static double renderScale; // canvas scale (edge length)
+    public static double getRenderScale()
+    { return renderScale; }
 
     public static void main(String[] args) {
 
         // - variables - //
         int amount; // amount of bodies
-        double size; // size of the tree (edge length)
+        double size = AU; // size of the tree (edge length)
         int drawInterval = 86400; // drawing interval in seconds
-        double approximation = 1; // T
+        double approximation = 0.5; // T
         TreeNode tree;
         Body[] bodies;
 
+        renderScale = size*1.2;
 
         // --- DIFFERENT CONFIGURATIONS --- ///
         //  solar system
@@ -42,7 +47,7 @@ public class Simulation {
         if(false)
         {
             amount = 10000;
-            size = 5*LY;
+            size = 5*AU;
             approximation = 1;
             drawInterval = 86400/24/30;
             Body[] b = Body.generateBodies(new Vector3(0,0,0),size,amount); bodies = b;
@@ -50,7 +55,7 @@ public class Simulation {
             tree = new TreeNode(new Vector3(0,0,0), size , bodies);
         }
         // tiny unrealistic cluster
-        if(true)
+        if(false)
         {
             drawInterval = 86400/24/10;
             amount = 100;
@@ -58,7 +63,15 @@ public class Simulation {
             Body[] b = Body.generateBodies(new Vector3(0,0,0),size/2,amount); bodies = b;
             tree = new TreeNode(new Vector3(0,0,0), size , bodies);
         }
-
+        if(true)
+        {
+            drawInterval = 86400/24/60;
+            Cluster c1 = new Cluster(0.5*M,1.5*M,AU/2,0.8,true,new Vector3(0,0,0), new Vector3(0,0,0));
+            c1.generateBodies(10000);
+            bodies = c1.bodies;
+            tree = new TreeNode(Vector3.zeroVector(),size,bodies);
+        }
+        // ///////////////////////
 
         // stdDraw setup
         StdDraw.setCanvasSize(1000,1000);
@@ -74,29 +87,12 @@ public class Simulation {
         double seconds = 0;
         while (true){
 
-            // (force calculation without octtree)
-            /*
-                Vector3[] forces = new Vector3[amount];
-                for (int i = 0; i < amount ; i++) {
-                    forces[i] = new Vector3(0,0,0);
-                    for (int j = 0; j < amount ; j++) {
-                        if(i != j)
-                            forces[i] = forces[i].plus(bods[i].gravForce(bods[j]));
-                    }
-                }
-
-                for (int i = 0; i < amount; i++) {
-                    bods[i].move(forces[i]);
-                }
-            */
-
             // drawing and printing
             if(seconds%drawInterval==0)
             {
                 System.out.println("day " + (int)seconds/86400);
-                StdDraw.clear(Color.black);
-                tree.drawTree();
-                StdDraw.show();
+                //StdDraw.clear(Color.black); tree.drawTree(); StdDraw.show();
+                StdDraw.clear(StdDraw.BLACK); for (int i = 0; i < bodies.length ; i++) bodies[i].draw(); StdDraw.show();
             }
 
             // debug: move body[0] with click
@@ -104,9 +100,9 @@ public class Simulation {
                 bodies[0] = new Body(bodies[0].getMass(),new Vector3(StdDraw.mouseX(),StdDraw.mouseY(),0));
 
             // calculate forces and move bodies
-            for (int i = 0; i < amount; i++){
+            for (int i = 0; i < bodies.length; i++){
                 // DEBUG: System.out.println("CALCULATING FORCE FOR " + i);
-                bodies[i].move( tree.calculateForce(bodies[i],approximation) );
+                bodies[i].move( tree.calculateForce(bodies[i],approximation).times(60.0) );
             }
 
             // rebuild tree
