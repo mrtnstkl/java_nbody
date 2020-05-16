@@ -51,9 +51,9 @@ public class Body {
     }
     // --- move(force, time) --- //
     // move the body for a given amount of seconds.
-    public void move(Vector3 force, double secomds){
-        velocity = velocity.plus(force.times(1/mass).times(secomds));
-        position = position.plus(velocity.times(secomds));
+    public void move(Vector3 force, double seconds){
+        velocity = velocity.plus(force.times(1/mass).times(seconds));
+        position = position.plus(velocity.times(seconds));
     }
 
     // --- draw --- //
