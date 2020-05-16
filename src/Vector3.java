@@ -95,7 +95,7 @@ public class Vector3 {
         StdDraw.setYscale(-1 * scale +y, scale +y);
     }
 
-    public static Vector3 zeroVector(){
+    public static Vector3 zeroVec(){
         return new Vector3(0,0,0);
     }
 }
