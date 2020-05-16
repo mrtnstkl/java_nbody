@@ -11,7 +11,7 @@ public class TreeNode {
     private double size; // size of quadrant (length of edge)
     private NodeStatus status = NodeStatus.EMPTY;
 
-    private TreeNode children[] = new TreeNode[8]; // array of child nodes
+    private TreeNode[] children = new TreeNode[8]; // array of child nodes
 
     private Body body;
     private double totalMass = 0;
@@ -82,8 +82,8 @@ public class TreeNode {
         Vector3 forceVector = new Vector3(0,0,0);
 
         // return 0-vector if body is compared to itself or the node empty
-        if(status == NodeStatus.EMPTY || b.getPosition().distanceTo(centerOfMass) < 1000.0 )
-        {
+        // if(status == NodeStatus.EMPTY || b.getPosition().distanceTo(centerOfMass) < 1000.0 ) ;
+        if(status == NodeStatus.EMPTY || body == b ) {
             // DEBUG: System.out.println("calculateForce(): guard triggered");
             return forceVector;
         }
@@ -109,20 +109,30 @@ public class TreeNode {
             }
             // DEBUG: System.out.println("calculateForce(): stepping up");
         }
-
+        // TODO: remove debugging stuff
+        if ( (Double.isNaN(forceVector.x) || Double.isInfinite(forceVector.x) || Double.isNaN(forceVector.y) || Double.isInfinite(forceVector.y) || Double.isNaN(forceVector.z) || Double.isInfinite(forceVector.z)) == true)
+            {System.out.println("AAAAAAAAAAAAAAAAA");}
         return forceVector;
     }
 
     // --- drawTree --- //
     // recursively draws all bodies and body nodes
     public void drawTree(){
+        // draw the center of mass
         centerOfMass.drawAsDot(0.8,StdDraw.BOOK_LIGHT_BLUE);
+        // node is a body
         if(status == NodeStatus.BODY){
+            // set draw color
             StdDraw.setPenColor(body.getColor());
+            // draw the subtree outline as a rectangle
             StdDraw.rectangle(position.x,position.y,size/2,size/2);
-            body.draw();
+            // draw the body
+            // TODO: body size is dependant on the subtree size ->> find a solution to keep sizes constant
+            body.draw(size*0.01);
         }
+        // node is a parent
         if(status == NodeStatus.PARENT){
+            // don't draw, step into children if they exist
             for (int i = 0; i < 8 ; i++)
             {
                 if(children[i] != null)
@@ -198,28 +208,28 @@ public class TreeNode {
             return;
 
         switch (childNumber) {
-            case 0:
+            case 0: // top left back
                 children[0] = new TreeNode( new Vector3( position.x - size/4 , position.y - size/4 , position.z - size/4 ) , size/2 );
                 break;
-            case 1:
+            case 1: // top right back
                 children[1] = new TreeNode( new Vector3( position.x + size/4 , position.y - size/4 , position.z - size/4 ) , size/2 );
                 break;
-            case 2:
+            case 2: // bottom left back
                 children[2] = new TreeNode( new Vector3( position.x - size/4 , position.y + size/4 , position.z - size/4 ) , size/2 );
                 break;
-            case 3:
+            case 3: // bottom right back
                 children[3] = new TreeNode( new Vector3( position.x + size/4 , position.y + size/4 , position.z - size/4 ) , size/2 );
                 break;
-            case 4:
+            case 4: // top left front
                 children[4] = new TreeNode( new Vector3( position.x - size/4 , position.y - size/4 , position.z + size/4 ) , size/2 );
                 break;
-            case 5:
+            case 5: // top right front
                 children[5] = new TreeNode( new Vector3( position.x + size/4 , position.y - size/4 , position.z + size/4 ) , size/2 );
                 break;
-            case 6:
+            case 6: // bottom left front
                 children[6] = new TreeNode( new Vector3( position.x - size/4 , position.y + size/4 , position.z + size/4 ) , size/2 );
                 break;
-            case 7:
+            case 7: // top left front
                 children[7] = new TreeNode( new Vector3( position.x + size/4 , position.y + size/4 , position.z + size/4 ) , size/2 );
                 break;
         }
