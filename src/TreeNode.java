@@ -1,6 +1,7 @@
 import sun.reflect.generics.tree.Tree;
 
 import java.awt.*;
+import java.sql.SQLOutput;
 
 public class TreeNode {
 
@@ -36,10 +37,11 @@ public class TreeNode {
     public void add(Body body) {
 
         // only add body if it is inside the boundary of the tree
-        if( body.getPosition().x > position.x+size/2 || body.getPosition().x < position.x-size/2 ||
+        if( !body.active || // no need for collision detection, if body has already been set inactive
+            body.getPosition().x > position.x+size/2 || body.getPosition().x < position.x-size/2 ||
             body.getPosition().y > position.y+size/2 || body.getPosition().y < position.y-size/2 ||
             body.getPosition().z > position.z+size/2 || body.getPosition().z < position.z-size/2  ) {
-            // DEBUG: System.out.println(body.getPosition() + " is outside boundary");
+            body.active = false;
             return;
         }
 
@@ -79,47 +81,39 @@ public class TreeNode {
     // --- calculateForce --- //
     // returns a vector representing the gravitational force that this group of bodies exerts on b
     public Vector3 calculateForce(Body b, double approximation){
-        Vector3 forceVector = new Vector3(0,0,0);
-
-        // return 0-vector if body is compared to itself or the node empty
-        // if(status == NodeStatus.EMPTY || b.getPosition().distanceTo(centerOfMass) < 1000.0 ) ;
-        if(status == NodeStatus.EMPTY || body == b ) {
-            // DEBUG: System.out.println("calculateForce(): guard triggered");
+        Vector3 forceVector = Vector3.zeroVec();
+        // return 0-vector if body is compared to itself
+        if( body == b )
             return forceVector;
-        }
 
-        // use center of mass and totalmass of this node if it is a body node or far enough
-        if( b.getPosition().distanceTo(position)/size > approximation || status == NodeStatus.BODY ){ // r/d > T
-            // far enough:
-            forceVector = centerOfMass.minus(b.getPosition()); // vector from the body to the group
+        // node is far enough away, or a body node:
+        if( (b.getPosition().distanceTo(position)/size > approximation &&
+                (b.getPosition().x > position.x+size/2 || b.getPosition().x < position.x-size/2 ||         // additional collision detection
+                        b.getPosition().y > position.y+size/2 || b.getPosition().y < position.y-size/2 ||  // This is redundant if T is
+                        b.getPosition().z > position.z+size/2 || b.getPosition().z < position.z-size/2  )  // bigger than 0.866
+            ) || status == NodeStatus.BODY ) {
+            // vector from the body to the COM of this subtree
+            forceVector = centerOfMass.minus(b.getPosition());
             forceVector.normalize(); // normalize the vector
             // multiply normalised vector with force and return it
-            // DEBUG: System.out.println( "returning  " + b.id +" : " + totalMass + " " + b.getMass() + " " + b.getPosition().distanceTo(centerOfMass) + " | :" );
             return forceVector.times( Simulation.G * (totalMass*b.getMass()) / Math.pow( b.getPosition().distanceTo(centerOfMass), 2) );
         }
-        // else: node is a parent
+        // else: node is a parent, and too close. continue recursive calls
         else{
             // add force vectors of all children if node has children
-            // DEBUG: System.out.println("calculateForce(): stepping down");
             for (int i = 0; i < 8 ; i++) {
-                if(children[i] != null) {
+                if(children[i] != null)
                     // add all force vectors of the children together
                     forceVector = forceVector.plus(children[i].calculateForce(b,approximation));
-                }
             }
-            // DEBUG: System.out.println("calculateForce(): stepping up");
         }
-        // TODO: remove debugging stuff
-        if ( (Double.isNaN(forceVector.x) || Double.isInfinite(forceVector.x) || Double.isNaN(forceVector.y) || Double.isInfinite(forceVector.y) || Double.isNaN(forceVector.z) || Double.isInfinite(forceVector.z)) == true)
-            {System.out.println("AAAAAAAAAAAAAAAAA");}
+        // return total force that this subtree exerts on the body
         return forceVector;
     }
 
     // --- drawTree --- //
     // recursively draws all bodies and body nodes
     public void drawTree(){
-        // draw the center of mass
-        centerOfMass.drawAsDot(0.8,StdDraw.BOOK_LIGHT_BLUE);
         // node is a body
         if(status == NodeStatus.BODY){
             // set draw color
@@ -127,14 +121,12 @@ public class TreeNode {
             // draw the subtree outline as a rectangle
             StdDraw.rectangle(position.x,position.y,size/2,size/2);
             // draw the body
-            // TODO: body size is dependant on the subtree size ->> find a solution to keep sizes constant
-            body.draw(size*0.01);
+            StdDraw.point(body.getPosition().x,body.getPosition().y);
         }
         // node is a parent
         if(status == NodeStatus.PARENT){
             // don't draw, step into children if they exist
-            for (int i = 0; i < 8 ; i++)
-            {
+            for (int i = 0; i < 8 ; i++) {
                 if(children[i] != null)
                     children[i].drawTree();
             }
@@ -149,8 +141,7 @@ public class TreeNode {
             return 1;
         }
         if(status == NodeStatus.PARENT){
-            for (int i = 0; i < 8 ; i++)
-            {
+            for (int i = 0; i < 8 ; i++) {
                 if(children[i] != null)
                     total += children[i].countElements();
             }
