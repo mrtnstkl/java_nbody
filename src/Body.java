@@ -5,11 +5,12 @@ import java.awt.*;
 public class Body {
 
     // --- variables --- //
-    public int id = -1; // debugging
     private double mass;
     private Vector3 position;
     private Vector3 velocity = new Vector3(0,0,0);
     private Color color = Color.white;
+
+    public boolean active = true;
 
     // --- getter --- //
     public double getMass()
@@ -20,6 +21,10 @@ public class Body {
     { return velocity; }
     public Color getColor()
     { return color; }
+
+    // --- setter --- //
+    public void setVelocity(Vector3 velocity)
+    { this.velocity = velocity; }
 
     // --- constructors --- //
     public Body(double mass,Vector3 position){
@@ -71,4 +76,10 @@ public class Body {
         return forceVector.times( 6.6743e-11d * (mass*b.mass) / Math.pow( position.distanceTo(b.position), 2) );
     }
 
+    // --- toString --- //
+    // return a string with the mass, position and velocity
+    @Override
+    public String toString(){
+        return "m: " + mass + "  pos: " + position + "  vel: " + velocity;
+    }
 }
