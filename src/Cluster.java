@@ -41,15 +41,15 @@ public class Cluster {
     // adds a single body to the cluster
     public void add(Body body){
         // new body array with bigger size
-        Body[] b = new Body[ bodies.length + 1 ];
+        Body[] newB = new Body[ bodies.length + 1 ];
 
         // copy old bodies to the new array
-        for (int i = 0; i < bodies.length-1; i++)
-            b[i] = bodies[i];
+        for (int i = 0; i < bodies.length; i++)
+            newB[i] = bodies[i];
         // add the new body
-        b[b.length-1] = body;
+        newB[newB.length-1] = body;
 
-        bodies = b;
+        bodies = newB;
     }
 
     // --- add(array) --- //
@@ -58,17 +58,17 @@ public class Cluster {
 
         int oldSize = bodies.length;
         // create new body array with bigger size
-        Body[] b = new Body[ oldSize + body.length ];
+        Body[] newB = new Body[ oldSize + body.length ];
 
         // copy old bodies to the new array
         for (int i = 0; i < oldSize; i++)
-            b[i] = bodies[i];
+            newB[i] = bodies[i];
 
         // copy the new bodies to the array
         for (int i = 0; i < body.length; i++)
-            b[oldSize+i] = body[i];
+            newB[oldSize+i] = body[i];
 
-        bodies = b;
+        bodies = newB;
     }
 
     // --- generateBodies --- //
@@ -117,45 +117,57 @@ public class Cluster {
     }
 
     // --- calculateVelocities ---
-    // STILL WORK IN PROGRESS. Doesn't work as intended yet. In theory:
-    // make all bodies in the cluster orbit the center
-    // this is done by calculating the total force exerted on each body. This is a vector.
-    // By transforming the Formula f=G*m1*m2/d^2  to  d=sqrt(G*m1*m2/f),  a distance to a
-    // virtual body with the mass of the entire cluster can be calculated.
-    // The calculated values are then inserted into the formula for orbital velocity.
+    // Calculates an initial velocity for generated bodies, taking the total mass of the cluster into account.
     public void calculateVelocities(){
-
-        // get mass of the entire cluster
-        double totalMass = 0.0;
+        // -- cluster mass -------
+        double totalMass = 0;
         for ( Body b : bodies )
             totalMass += b.getMass();
 
         // iterate through all bodies
         for ( Body body : bodies){
+            // -- vector to center --------
+            Vector3 vecToCenter = body.getPosition().minus(clusterCenter);
+            vecToCenter.normalize();
 
-            // calculate the force acted on the current body by the rest of the cluster
-            Vector3 force = Vector3.zeroVec();
-            for ( Body b : bodies ){
-                if( b!=body) force = force.plus(body.gravForce(b));
-            }
-
-            // d=sqrt(G*m1*m2/f) -> calculate the distance to a virtual body
-            double vDistance = Math.sqrt(Simulation.G*body.getMass()*totalMass/force.length());
-
-            // calculate orbital velocity
-            double orbitalVelocity = Math.sqrt(Simulation.G*body.getMass()/vDistance);
-
-            // -- normal vector ----
-            // generate a random normal vector
-            // the normal vector is a vector between the origin and a random point of the normal plane of force
-            // generate a random x and y coordinate for that point. then solve the normal plane equation for z
+            // -- perpendicular vector ----
+            // generate a random vector that is perpendicular to the vector to the center of the cluster
+            // the normal vector is a vector between the origin and a random point of the normal plane of vecToCenter
+                // generate a random x and y coordinate for that point.
             Vector3 normalVector = new Vector3(Math.random()*2-1,Math.random()*2-1,0.0);
-            force.normalize();
-            normalVector.z = ( force.x*normalVector.x + force.y*normalVector.y ) / force.z;
+                // solve the normal plane equation for z
+            normalVector.z = ( vecToCenter.x*normalVector.x + vecToCenter.y*normalVector.y ) / vecToCenter.z;
 
-            // set the velocity vector equal to the normal vector multiplied with the orbital velocity
-            body.setVelocity( normalVector.times(orbitalVelocity) );
+            // -- orbital velocity --------
+            double orbitalVelocity = Math.sqrt(Simulation.G*totalMass/body.getPosition().distanceTo(clusterCenter));
+
+            // velocity vector = cluster velocity + normal vector * orbital velocity
+            body.setVelocity( clusterVelocity.plus( normalVector.times(orbitalVelocity/2) ) );
         }
     }
 
 }
+
+
+// ### IGNORE ###
+/*
+
+    ############################
+    StdDraw.setScale(-100, 100); // scale = area of the tree
+        StdDraw.setPenRadius(0.002);
+        StdDraw.text(0,0,"GENERATING INITIAL VELOCITIES...");
+        StdDraw.enableDoubleBuffering();
+        StdDraw.clear(StdDraw.BLACK);
+    ##############
+    // debug stuff for displaying movement vectors
+    Vector3 lineEnd = body.getPosition().plus(normalVector.times(orbitalVelocity).times(500000));
+    StdDraw.setPenColor(body.getColor());
+    StdDraw.line(body.getPosition().x,body.getPosition().y,lineEnd.x,lineEnd.y);
+    StdDraw.setPenColor(StdDraw.WHITE);
+    StdDraw.point(body.getPosition().x,body.getPosition().y);
+
+    StdDraw.show();
+    StdDraw.pause( 500 );
+    #############################
+
+ */
