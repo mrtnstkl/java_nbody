@@ -18,7 +18,8 @@ public class Simulation {
     public static void main(String[] args) {
 
         // - VARIABLES - //
-        double   size          = AU;    // size of the tree (edge length)
+        double   size          = AU;    // size of the viewed area (edge length)
+        double   sizeMultiplier= 1;     // how many times bigger the tree is, than the viewed area. Set this higher to still simulate off-screen bodies.
         int      drawInterval  = 1;     // drawing interval in seconds.
         double   approximation = 0.5;   // T
         double   timeSteps     = HOUR;  // controls how often forces are calculated in seconds / how much time passes with one iteration.
@@ -27,18 +28,19 @@ public class Simulation {
 
         Body[]   simulationBodies = new Body[0];  // array that holds all bodies that will be simulated
 
+        StdDraw.setCanvasSize(700,700);
 
         // --- DIFFERENT CONFIGURATIONS --- ///
         // 1 : solar system with sun, earth, moon, mars, mercury, venus
-        // 2 : simple cluster with 10k bodies
+        // 2 : cluster with 10k bodies
         // 3 : cluster with 50k bodies
-        // 4 : cluster with large area, 20k bodies (slow)
-        // 5 : small amount of bodies(1k), viewed from a distance
+        // 4 : cluster with 100k bodies
+        // 5 : 2 clusters, one SMBH
         // 6 : 2 clusters with the same parameters
         // 7 : 2 clusters, one with lighter stars, the other with heavier stars
         // 8 : 4 clusters with different star distribution
         // 9 : 2 clusters. one of them is smaller and has a velocity, moving through the bigger cluster
-        int config = 8;
+        int config = 5;
         switch (config){
             case 1: {
                 Body sun = new Body(1.989e30,new Vector3(0,0,0),new Vector3(0,0,0),StdDraw.YELLOW);
@@ -60,7 +62,7 @@ public class Simulation {
                 approximation = 0.8;
                 size = 50*AU;
                 Cluster c = new Cluster(1*M,1*M,size/2,0.8);
-                c.generateBodies(10000);
+                c.generateBodies(15000);
                 c.calculateVelocities();
                 simulationBodies = c.getBodies();
                 break;
@@ -71,36 +73,43 @@ public class Simulation {
                 size = 50*AU;
                 Cluster c = new Cluster(5*M,10*M,size/2,0.3);
                 c.generateBodies(50000);
+                c.calculateVelocities();
                 simulationBodies = c.getBodies();
                 break;
             }
             case 4: {
-                size = 1*LY;
-                timeSteps = 300 * DAY;
-                drawInterval= 600 * DAY;
-                Cluster c = new Cluster(1*M,10*M,size/2,0.5 );
-                c.generateBodies(20000);
+                timeSteps = 4*HOUR;
+                approximation = 0.5;
+                size = 50*AU;
+                Cluster c = new Cluster(5*M,10*M,size/3,0.3);
+                c.generateBodies(100000);
+                c.calculateVelocities();
                 simulationBodies = c.getBodies();
                 break;
             }
             case 5: {
-                timeSteps = MINUTE;
-                drawInterval = 10 * MINUTE;
-                approximation = 1;
-                size = 5*AU;
-                Cluster c = new Cluster(1*M,1.5*M,size/8,0.5 );
-                c.generateBodies(1000);
-                simulationBodies = c.getBodies();
+                timeSteps = HOUR;
+                approximation = 0.7;
+                size = 50*AU;
+                Cluster c1 = new Cluster(0.5*M,1.5*M,size/3,0.5, new Vector3(size*-0.4,size*-0.4, 0.0), Vector3.zeroVec() );
+                Cluster c2 = new Cluster(0.5*M,1.5*M,size/3,0.5, new Vector3(size*+0.4,size*+0.4, 0.0), Vector3.zeroVec() );
+                c1.setBodyColor(Color.ORANGE); c2.setBodyColor(Color.CYAN);
+                c1.generateBodies(10000); c2.generateBodies(10000);
+                c1.calculateVelocities(); c2.calculateVelocities();
+                c2.add( new Body( 1e6*M, new Vector3(0,0,0) , new Vector3(0,0,0),StdDraw.RED ) );
+                simulationBodies = combineArrays(c1.getBodies(),c2.getBodies() );
+                size*=2;
                 break;
             }
             case 6: {
                 timeSteps = 6*HOUR;
                 approximation = 0.8;
-                size = 50*AU;
+                size = 30*AU;
                 Cluster c1 = new Cluster(0.5*M,1.5*M,size/3,0.5, new Vector3(size*-0.2,size*-0.2, 0.0), Vector3.zeroVec() );
                 Cluster c2 = new Cluster(0.5*M,1.5*M,size/3,0.5, new Vector3(size*+0.2,size*+0.2, 0.0), Vector3.zeroVec() );
                 c1.setBodyColor(Color.ORANGE); c2.setBodyColor(Color.CYAN);
-                c1.generateBodies(5000); c2.generateBodies(5000);
+                c1.generateBodies(10000); c2.generateBodies(10000);
+                c1.calculateVelocities(); c2.calculateVelocities();
                 simulationBodies = combineArrays(c1.getBodies(),c2.getBodies());
                 break;
             }
@@ -111,13 +120,12 @@ public class Simulation {
                 Cluster c1 = new Cluster(0.5*M,1.5*M,size/3,0.5, new Vector3(size*-0.2,size*-0.2, 0.0), Vector3.zeroVec() );
                 Cluster c2 = new Cluster(5*M,10*M,size/3,0.5, new Vector3(size*+0.15,size*+0.15, 0.0), Vector3.zeroVec() );
                 c1.setBodyColor(Color.ORANGE); c2.setBodyColor(Color.CYAN);
-                c1.generateBodies(5000); c2.generateBodies(5000);
+                c1.generateBodies(10000); c2.generateBodies(10000);
                 simulationBodies = combineArrays(c1.getBodies(),c2.getBodies());
                 break;
             }
             case 8: {
                 timeSteps = DAY;
-                drawInterval = 2*DAY;
                 approximation = 0.9;
                 size = 100*AU;
                 Cluster c3 = new Cluster(M,M,size/4,0, new Vector3(size*-0.2,size*+0.2, 0.0), Vector3.zeroVec() );
@@ -125,7 +133,7 @@ public class Simulation {
                 Cluster c4 = new Cluster(M,M,size/4,0.8, new Vector3(size*-0.2,size*-0.2, 0.0), Vector3.zeroVec() );
                 Cluster c2 = new Cluster(M,M,size/4,5, new Vector3(size*+0.2,size*-0.2, 0.0), Vector3.zeroVec() );
                 c1.setBodyColor(Color.ORANGE); c2.setBodyColor(Color.CYAN); c3.setBodyColor(Color.GREEN); c4.setBodyColor(Color.RED);
-                c1.generateBodies(2000); c2.generateBodies(2000); c3.generateBodies(2000); c4.generateBodies(2000);
+                c1.generateBodies(4000); c2.generateBodies(4000); c3.generateBodies(4000); c4.generateBodies(4000);
                 simulationBodies = combineArrays(c1.getBodies(),c2.getBodies(),c3.getBodies(),c4.getBodies());
                 break;
             }
@@ -136,21 +144,22 @@ public class Simulation {
                 Cluster c1 = new Cluster(0.5*M,0.6*M,size/4,0.5, Vector3.zeroVec(), Vector3.zeroVec() );
                 Cluster c2 = new Cluster(10*M,15*M,size/32,0.3, new Vector3(size/-3,size/-3,0), new Vector3(2e6,2e6,0) );
                 c1.setBodyColor(Color.ORANGE); c2.setBodyColor(Color.CYAN);
-                c1.generateBodies(6000); c2.generateBodies(3000);
+                c1.generateBodies(9000); c2.generateBodies(6000);
+                c1.calculateVelocities(); c2.calculateVelocities();
                 simulationBodies = combineArrays(c1.getBodies(),c2.getBodies());
                 break;
             }
         }
 
         // -- create octtree -----------
-        TreeNode simulationTree = new TreeNode(Vector3.zeroVec(),size,simulationBodies);
+        TreeNode simulationTree = new TreeNode(Vector3.zeroVec(),size*sizeMultiplier,simulationBodies);
 
         // -- print configuration ------
         System.out.println(
                 " -- Running Barnes-Hut Simulation --\n" +
                         " body count:    " + simulationBodies.length + '\n' +
                         " approximation: " + approximation + '\n' +
-                        " tree size:     " + (size < 1000*AU ? size/AU + " AU" : size/LY + "LY" ) + '\n' +
+                        " tree size:     " + (size < 1000*AU ? size/AU + " AU" : size/LY + "LY" ) + " * " + sizeMultiplier + '\n' +
                         " time steps   : " + timeSteps + "sec\n" +
                         " draw interval: " + (drawInterval < 60 ? drawInterval + " sec" :
                         ( drawInterval < 3600 ? drawInterval/60 + " min " + ( drawInterval%60 != 0 ? drawInterval%60 + "sec" : "" ) :
@@ -158,7 +167,6 @@ public class Simulation {
         );
 
         // -- setup stdDraw ------------
-        StdDraw.setCanvasSize(700,700);
         StdDraw.setScale(size/-2, size/2); // scale = area of the tree
         StdDraw.setPenRadius(drawRadius);
         StdDraw.enableDoubleBuffering();
@@ -193,7 +201,7 @@ public class Simulation {
             if(StdDraw.isMousePressed()) simulationBodies[0] = new Body(simulationBodies[0].getMass(),new Vector3(StdDraw.mouseX(),StdDraw.mouseY(),0));
 
             // 3) rebuild tree
-            simulationTree = new TreeNode(Vector3.zeroVec(),size,simulationBodies);
+            simulationTree = new TreeNode(Vector3.zeroVec(),size*sizeMultiplier,simulationBodies);
 
             simulationClock+= timeSteps;
         }
